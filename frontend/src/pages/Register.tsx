@@ -75,8 +75,8 @@ const Register: React.FC = () => {
     if (!formData.password) {
       errors.password = 'Password is required';
       isValid = false;
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
       isValid = false;
     }
 
