@@ -8,7 +8,7 @@ interface ChatMessageProps {
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ sender, message }) => (
   <Box sx={{ display: 'flex', justifyContent: sender === 'AI' ? 'flex-start' : 'flex-end', mb: 2 }}>
-    <Box sx={{ maxWidth: '70%', bgcolor: sender === 'AI' ? 'primary.light' : 'secondary.light', p: 2, borderRadius: 2 }}>
+    <Box sx={{ maxWidth: '70%', bgcolor: sender === 'AI' ? 'primary.light' : 'secondary.light', p: 2, borderRadius: 1 }}>
       <Typography variant="body1">{message}</Typography>
     </Box>
   </Box>

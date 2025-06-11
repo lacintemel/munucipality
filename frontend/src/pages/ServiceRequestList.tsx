@@ -121,7 +121,6 @@ const ServiceRequestList: React.FC = () => {
             <TableRow>
               <TableCell>Title</TableCell>
               <TableCell>Category</TableCell>
-              <TableCell>Priority</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Created</TableCell>
               <TableCell>Actions</TableCell>
@@ -132,13 +131,6 @@ const ServiceRequestList: React.FC = () => {
               <TableRow key={request._id}>
                 <TableCell>{request.title}</TableCell>
                 <TableCell>{request.category}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={request.priority}
-                    color={request.priority === 'high' ? 'error' : request.priority === 'medium' ? 'warning' : 'success'}
-                    size="small"
-                  />
-                </TableCell>
                 <TableCell>
                   <Chip
                     icon={statusIcons[request.status]}

@@ -77,7 +77,7 @@ const Profile: React.FC = () => {
         elevation={0}
         sx={{
           p: 4,
-          borderRadius: 2,
+          borderRadius: 1,
           background: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(10px)',
         }}
@@ -226,7 +226,7 @@ const Profile: React.FC = () => {
                     sx={{
                       px: 4,
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: 1,
                       textTransform: 'none',
                       fontSize: '1rem',
                     }}
@@ -241,7 +241,7 @@ const Profile: React.FC = () => {
                       sx={{
                         px: 4,
                         py: 1.5,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         textTransform: 'none',
                         fontSize: '1rem',
                       }}
@@ -255,7 +255,7 @@ const Profile: React.FC = () => {
                       sx={{
                         px: 4,
                         py: 1.5,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         textTransform: 'none',
                         fontSize: '1rem',
                       }}

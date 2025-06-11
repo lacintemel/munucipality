@@ -53,6 +53,11 @@ const ServiceRequestForm: React.FC = () => {
   const navigate = useNavigate();
   const { createRequest } = useServiceRequest();
   const [activeStep, setActiveStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -101,6 +106,9 @@ const ServiceRequestForm: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+
     try {
       const formDataToSend = new FormData();
 
@@ -139,13 +147,28 @@ const ServiceRequestForm: React.FC = () => {
         formDataToSend.append('attachments', file);
       });
 
-      await createRequest(formDataToSend); 
-      navigate('/requests');
+      await createRequest(formDataToSend);
+      setSubmitStatus({
+        type: 'success',
+        message: 'Your request has been successfully submitted!'
+      });
+      
+      // Wait for 2 seconds to show the success message before redirecting
+      setTimeout(() => {
+        navigate('/requests');
+      }, 2000);
+
     } catch (error: any) {
       console.error('Error creating request:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to create service request. Please try again.'
+      });
       setErrors({
         submit: error.response?.data?.message || 'Failed to create service request. Please try again.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -268,7 +291,7 @@ const ServiceRequestForm: React.FC = () => {
               <Grid item xs={12}>
                 <Card elevation={0} sx={{ 
                   background: `linear-gradient(45deg, ${theme.palette.primary.light}15, ${theme.palette.primary.main}15)`,
-                  borderRadius: 2,
+                  borderRadius: 1,
                   mb: 3
                 }}>
                   <CardContent>
@@ -400,7 +423,7 @@ const ServiceRequestForm: React.FC = () => {
               <Grid item xs={12}>
                 <Card elevation={0} sx={{ 
                   background: `linear-gradient(45deg, ${theme.palette.primary.light}15, ${theme.palette.primary.main}15)`,
-                  borderRadius: 2,
+                  borderRadius: 1 ,
                   mb: 3
                 }}>
                   <CardContent>
@@ -533,7 +556,7 @@ const ServiceRequestForm: React.FC = () => {
               <Grid item xs={12}>
                 <Card elevation={0} sx={{ 
                   background: `linear-gradient(45deg, ${theme.palette.primary.light}15, ${theme.palette.primary.main}15)`,
-                  borderRadius: 2,
+                  borderRadius: 1,
                   mb: 3
                 }}>
                   <CardContent>
@@ -548,7 +571,7 @@ const ServiceRequestForm: React.FC = () => {
                 </Card>
               </Grid>
               <Grid item xs={12}>
-                <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                <Paper elevation={0} sx={{ p: 3, borderRadius: 1 }}>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <Typography variant="subtitle1" color="primary" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -558,7 +581,7 @@ const ServiceRequestForm: React.FC = () => {
                       <Card elevation={0} sx={{ 
                         background: theme.palette.background.default,
                         p: 2,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         mb: 2
                       }}>
                         <Typography variant="body1" sx={{ mb: 1 }}>
@@ -581,7 +604,7 @@ const ServiceRequestForm: React.FC = () => {
                         <Card elevation={0} sx={{ 
                           background: theme.palette.background.default,
                           p: 2,
-                          borderRadius: 2
+                          borderRadius: 1
                         }}>
                           <Typography variant="body1" sx={{ mb: 1 }}>
                             <strong>Address:</strong> {formData.location.address.street}
@@ -605,77 +628,90 @@ const ServiceRequestForm: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <MotionPaper
-        elevation={0}
-        sx={{
-          p: 4,
-          borderRadius: 2,
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-        }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" color="primary" gutterBottom>
-            Create New Request
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Fill out the form below to submit your service request
-          </Typography>
-        </Box>
-
-        {errors.submit && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {errors.submit}
-          </Alert>
+    <Container maxWidth="md">
+      <Box sx={{ mt: 4, mb: 8 }}>
+        {/* Notification Alert */}
+        {submitStatus.type && (
+          <Fade in={Boolean(submitStatus.type)}>
+            <Alert 
+              severity={submitStatus.type}
+              sx={{ 
+                mb: 2,
+                boxShadow: 1,
+                '& .MuiAlert-message': {
+                  flex: 1
+                }
+              }}
+              action={
+                submitStatus.type === 'error' && (
+                  <Button 
+                    color="inherit" 
+                    size="small" 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Retrying...' : 'Retry'}
+                  </Button>
+                )
+              }
+            >
+              {submitStatus.message}
+            </Alert>
+          </Fade>
         )}
 
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        <MotionPaper
+          elevation={0}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          sx={{
+            p: 4,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography variant="h5" component="h1" gutterBottom sx={{ mb: 4 }}>
+            Submit New Service Request
+          </Typography>
 
-        <form onSubmit={handleSubmit}>
-          {getStepContent(activeStep)}
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              startIcon={<ArrowBackIcon />}
-              sx={{
-                px: 4,
-                py: 1.5,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontSize: '1rem',
-              }}
-            >
-              Back
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              endIcon={activeStep === steps.length - 1 ? <SendIcon /> : <ArrowForwardIcon />}
-              sx={{
-                px: 4,
-                py: 1.5,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontSize: '1rem',
-              }}
-            >
-              {activeStep === steps.length - 1 ? 'Submit Request' : 'Next'}
-            </Button>
+          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
+          <Box component="form" onSubmit={handleSubmit}>
+            {getStepContent(activeStep)}
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
+              {activeStep !== 0 && (
+                <Button
+                  startIcon={<ArrowBackIcon />}
+                  onClick={handleBack}
+                  disabled={isSubmitting}
+                >
+                  Back
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                endIcon={activeStep === steps.length - 1 ? <SendIcon /> : <ArrowForwardIcon />}
+                onClick={handleNext}
+                disabled={isSubmitting}
+              >
+                {isSubmitting 
+                  ? 'Submitting...' 
+                  : activeStep === steps.length - 1 
+                    ? 'Submit Request' 
+                    : 'Next'}
+              </Button>
+            </Box>
           </Box>
-        </form>
-      </MotionPaper>
+        </MotionPaper>
+      </Box>
     </Container>
   );
 };

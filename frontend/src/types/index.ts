@@ -22,7 +22,7 @@ export interface ServiceRequest {
   description: string;
   category: 'pothole' | 'streetlight' | 'garbage' | 'water' | 'sewage' | 'other';
   status: 'pending' | 'in-progress' | 'resolved' | 'rejected';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  estimatedResponseTime: string;
   location: {
     type: 'Point';
     coordinates: [number, number];
@@ -36,7 +36,9 @@ export interface ServiceRequest {
   attachments: Array<{
     type: 'image' | 'video' | 'document';
     url: string;
-    filename: string;
+    originalname: string;
+    mimetype: string;
+    size: number;
     uploadedAt: string;
   }>;
   citizen: User;
@@ -50,7 +52,7 @@ export interface ServiceRequest {
     status: 'pending' | 'in-progress' | 'resolved' | 'rejected';
     changedBy: User;
     comment: string;
-    changedAt: string;
+    timestamp: string;
   }>;
   estimatedCompletionDate?: string;
   actualCompletionDate?: string;

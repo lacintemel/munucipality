@@ -59,8 +59,9 @@ const departments = [
   { value: 'Parks and Recreation', label: 'Parks and Recreation' },
   { value: 'Municipality', label: 'Municipality' },
   { value: 'Governorship', label: 'Governorship' },
-  { value: 'Ministry of Education', label: 'Ministry of Education' },
-  { value: 'Ministry of Sport', label: 'Ministry of Sport' },
+  { value: 'Ministry of Environment Urbanization and Climate Change', label: 'Ministry of Environment Urbanization and Climate Change' },
+  { value: 'Ministry of Transport and Infrastructure', label: 'Ministry of Transport and Infrastructure' },
+  { value: 'Ministry of the Interior', label: 'Ministry of the Interior' },
   { value: 'Ministry of Health', label: 'Ministry of Health' },
   { value: 'Other', label: 'Other' }
 ];

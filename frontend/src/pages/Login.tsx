@@ -36,14 +36,19 @@ const Login: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       await login(formData.email, formData.password);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,7 +67,7 @@ const Login: React.FC = () => {
           elevation={0}
           sx={{
             p: 4,
-            borderRadius: 2,
+            borderRadius: 1,
             background: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
           }}
@@ -70,7 +75,7 @@ const Login: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Typography
               variant="h4"
               component="h1"
@@ -78,10 +83,7 @@ const Login: React.FC = () => {
               gutterBottom
               sx={{ fontWeight: 600 }}
             >
-              Welcome Back
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Sign in to access your service portal
+              Sign In or Create Account
             </Typography>
           </Box>
 
@@ -162,6 +164,7 @@ const Login: React.FC = () => {
                   variant="contained"
                   size="large"
                   startIcon={<LoginIcon />}
+                   disabled={loading} // Waiting
                   sx={{
                     py: 1.5,
                     transition: 'all 0.3s ease',
@@ -171,7 +174,7 @@ const Login: React.FC = () => {
                     },
                   }}
                 >
-                  Sign In
+                  {loading ? 'Signing In...' : 'Sign In'}
                 </Button>
               </Grid>
               <Grid item xs={12}>

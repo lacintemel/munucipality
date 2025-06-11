@@ -51,42 +51,60 @@ const statusIcons = {
   rejected: <ErrorIcon />,
 } as const;
 
-// Mock data for news and announcements
-const newsItems = [
+interface NewsItem {
+  id: number;
+  title: string;
+  date: string;
+  category: string;
+  description: string;
+}
+
+interface Announcement {
+  id: number;
+  title: string;
+  date: string;
+  category: string;
+  description: string;
+}
+
+// Update the mock data with categories
+const newsItems: NewsItem[] = [
   {
     id: 1,
     title: 'New Government Services Portal Launch',
-    date: '2024-03-15',
-    category: 'Announcement',
+    date: '2025-05-24',
+    category: 'Public',
     description: 'The government has launched a new digital services portal to streamline citizen services.',
   },
   {
     id: 2,
     title: 'Public Holiday Schedule 2024',
-    date: '2024-03-10',
-    category: 'Notice',
-    description: 'View the complete list of public holidays for the year 2024.',
+    date: '2025-03-08',
+    category: 'Public',
+    description: 'View the complete list of public holidays for the year 2025.',
   },
   {
     id: 3,
     title: 'Tax Filing Deadline Extension',
-    date: '2024-03-05',
-    category: 'Important',
-    description: 'The deadline for tax filing has been extended to April 30, 2024.',
+    date: '2025-06-01',
+    category: 'Internal',
+    description: 'The deadline for tax filing has been extended to September 30, 2025.',
   },
 ];
 
-const announcements = [
+const announcements: Announcement[] = [
   {
     id: 1,
     title: 'System Maintenance',
-    date: '2024-03-20',
-    description: 'Scheduled maintenance on March 20, 2024, from 2 AM to 4 AM.',
+    date: '2025-06-05',
+    category: 'Internal',
+    description: 'Scheduled maintenance on August 20, 2025, from 2 AM to 4 AM.',
   },
   {
     id: 2,
     title: 'New Features Available',
-    date: '2024-03-18',
+    date: '2025-04-29',
+    category: 'Public',
     description: 'Check out the new features in our service portal.',
   },
 ];
@@ -121,6 +139,13 @@ const Home: React.FC = () => {
     }
   }, [requests]);
 
+  const capitalizeWords = (str: string | undefined): string => {
+    if (!str) return '';
+    return str.split(' ')
+      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   if (loading) {
     return (
       <Box
@@ -146,6 +171,40 @@ const Home: React.FC = () => {
 
   return (
     <Box>
+      {/* Welcome Message */}
+      <Box
+        sx={{
+          mb: 4,
+          p: 3,
+          borderRadius: 2,
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.1)}, ${alpha(theme.palette.primary.main, 0.1)})`,
+        }}
+      >
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          gutterBottom
+          sx={{ 
+            color: 'primary.main',
+            fontWeight: 500,
+            mb: 1
+          }}
+        >
+          Welcome, {capitalizeWords(user?.name)}
+        </Typography>
+        <Typography 
+          variant="subtitle1" 
+          color="text.secondary"
+          sx={{ maxWidth: 800 }}
+        >
+          {user?.role === 'admin' ? (
+            "Welcome to the Admin Dashboard. Here you can manage all service requests, track their status, and oversee the system's operations."
+          ) : (
+            "Welcome to the Municipal Service Request Management System (SRMS). Here you can submit new service requests, track their progress, and stay updated on municipal announcements."
+          )}
+        </Typography>
+      </Box>
+
       <Grid container spacing={3}>
         {/* News Section */}
         <Grid item xs={12} md={8}>
@@ -153,7 +212,7 @@ const Home: React.FC = () => {
             elevation={0}
             sx={{
               p: 3,
-              borderRadius: 2,
+              borderRadius: 1,
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
@@ -163,23 +222,41 @@ const Home: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <NewspaperIcon sx={{ mr: 1, color: 'primary.main' }} />
               <Typography variant="h6" component="h2">
-                News & Updates
+                {user?.role === 'admin' ? 'System Updates & Notices' : 'News & Updates'}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {newsItems.map((news) => (
-                <Card key={news.id} variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle2" gutterBottom>
-                      {news.title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                      {news.date}
-                    </Typography>
-                    <Typography variant="body2">{news.description}</Typography>
-                  </CardContent>
-                </Card>
-              ))}
+              {user?.role === 'admin' ? (
+                // Admin specific news items
+                newsItems.map((news) => (
+                  <Card key={news.id} variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {news.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                        {news.date}
+                      </Typography>
+                      <Typography variant="body2">{news.description}</Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                // Regular user news items - only show public items
+                newsItems.filter(news => news.category === 'Public').map((news) => (
+                  <Card key={news.id} variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {news.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                        {news.date}
+                      </Typography>
+                      <Typography variant="body2">{news.description}</Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </Box>
           </Paper>
         </Grid>
@@ -190,7 +267,7 @@ const Home: React.FC = () => {
             elevation={0}
             sx={{
               p: 3,
-              borderRadius: 2,
+              borderRadius: 1,
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
@@ -200,23 +277,41 @@ const Home: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <NotificationsIcon sx={{ mr: 1, color: 'primary.main' }} />
               <Typography variant="h6" component="h2">
-                Announcements
+                {user?.role === 'admin' ? 'System Alerts' : 'Announcements'}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {announcements.map((announcement) => (
-                <Card key={announcement.id} variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle2" gutterBottom>
-                      {announcement.title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                      {announcement.date}
-                    </Typography>
-                    <Typography variant="body2">{announcement.description}</Typography>
-                  </CardContent>
-                </Card>
-              ))}
+              {user?.role === 'admin' ? (
+                // Admin specific announcements
+                announcements.map((announcement) => (
+                  <Card key={announcement.id} variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {announcement.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                        {announcement.date}
+                      </Typography>
+                      <Typography variant="body2">{announcement.description}</Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                // Regular user announcements - only show public items
+                announcements.filter(a => a.category === 'Public').map((announcement) => (
+                  <Card key={announcement.id} variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {announcement.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                        {announcement.date}
+                      </Typography>
+                      <Typography variant="body2">{announcement.description}</Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </Box>
           </Paper>
         </Grid>
@@ -226,15 +321,15 @@ const Home: React.FC = () => {
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              borderRadius: 2,
+              p: 8,
+              borderRadius: 1,
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h6" component="h2">
+              <Typography variant="h6" component="h6">
                 {user?.role === 'admin' ? 'All Service Requests' : 'Your Service Requests'}
               </Typography>
               {user?.role !== 'admin' && (
@@ -253,11 +348,11 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   sx={{
                     bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h4" color="primary" gutterBottom>
+                    <Typography variant="h6" color="primary" gutterBottom>
                       {stats.total}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -271,11 +366,11 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   sx={{
                     bgcolor: alpha(theme.palette.warning.main, 0.1),
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h4" color="warning.main" gutterBottom>
+                    <Typography variant="h6" color="warning.main" gutterBottom>
                       {stats.pending}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -289,11 +384,11 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   sx={{
                     bgcolor: alpha(theme.palette.info.main, 0.1),
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h4" color="info.main" gutterBottom>
+                    <Typography variant="h6" color="info.main" gutterBottom>
                       {stats.inProgress}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -307,11 +402,11 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   sx={{
                     bgcolor: alpha(theme.palette.success.main, 0.1),
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h4" color="success.main" gutterBottom>
+                    <Typography variant="h6" color="success.main" gutterBottom>
                       {stats.resolved}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -325,11 +420,11 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   sx={{
                     bgcolor: alpha(theme.palette.error.main, 0.1),
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h4" color="error.main" gutterBottom>
+                    <Typography variant="h6" color="error.main" gutterBottom>
                       {stats.rejected}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">

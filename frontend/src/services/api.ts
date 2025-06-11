@@ -197,7 +197,6 @@ export const adminAPI = {
   getAllRequests: async (params: {
     status?: ServiceRequest['status'];
     category?: ServiceRequest['category'];
-    priority?: ServiceRequest['priority'];
     startDate?: string;
     endDate?: string;
     page?: number;
