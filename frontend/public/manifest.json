@@ -1,6 +1,6 @@
 {
-  "short_name": "GIMER",
-  "name": "Municipality Service Request System",
+  "short_name": "SRMS",
+  "name": "Service Request Management System",
   "icons": [
     {
       "src": "images.png",

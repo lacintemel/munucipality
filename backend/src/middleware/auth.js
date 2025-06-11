@@ -13,27 +13,26 @@ const auth = async (req, res, next) => {
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      throw new Error('User not found');
     }
 
+    // Add user info to request
     req.user = user;
+    req.token = token;
     next();
   } catch (error) {
-    console.error(error);
-    res.status(401).json({ message: 'Token is invalid' });
+    res.status(401).json({ message: 'Please authenticate' });
   }
 };
 
 // Admin middleware
 const isAdmin = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user || (user.role !== 'admin' && user.email !== 'admin@example.com')) {
-      return res.status(403).json({ message: 'Only admins can access this route' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
     next();
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -46,8 +45,22 @@ const isStaff = (req, res, next) => {
   next();
 };
 
+const generateAuthToken = (user) => {
+  return jwt.sign(
+    { 
+      userId: user._id,
+      role: user.role,
+      name: user.name,
+      email: user.email
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+};
+
 module.exports = {
   auth,
   isAdmin,
-  isStaff
+  isStaff,
+  generateAuthToken
 }; 
