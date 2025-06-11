@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema({
     enum: ['citizen', 'admin', 'staff'],
     default: 'citizen'
   },
+  kvkkConsent: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
   isVerified: {
     type: Boolean,
     default: false

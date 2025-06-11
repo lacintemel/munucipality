@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const ServiceRequest = require('../models/ServiceRequest');
 const { auth, isAdmin } = require('../middleware/auth');
+const { emitNotification } = require('../socket');
 
 // Configure multer for local file storage
 const storage = multer.diskStorage({
@@ -126,6 +127,23 @@ router.post('/', auth, upload.array('attachments', 5), requestValidation, async 
     await serviceRequest.save();
     console.log('Status history added successfully');
 
+    // Send notification to all admins
+    const notification = {
+      type: 'NEW_REQUEST',
+      requestId: serviceRequest._id,
+      title: 'New Service Request',
+      message: `A new service request "${serviceRequest.title}" has been submitted by ${req.user.name}`,
+      status: serviceRequest.status,
+      updatedBy: {
+        _id: req.user._id,
+        name: req.user.name
+      },
+      timestamp: new Date()
+    };
+
+    emitNotification(notification);
+    console.log('Sent notification to admins:', notification);
+
     res.status(201).json(serviceRequest);
   } catch (error) {
     console.error('Request creation error details:', {
@@ -238,63 +256,58 @@ router.post('/:id/comments', auth, [
   }
 });
 
-// Update service request status (admin/staff only)
-router.patch('/:id/status', auth, [
-  body('status').isIn(['pending', 'in-progress', 'resolved', 'rejected']).withMessage('Invalid status'),
-  body('comment').optional().trim()
-], async (req, res) => {
+// Update service request status
+router.patch('/:id/status', auth, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation failed',
-        errors: errors.array() 
-      });
+    const { status, comment } = req.body;
+    
+    if (!['pending', 'in-progress', 'resolved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
     }
 
-    // Check if user has permission
-    if (req.user.role === 'citizen') {
-      return res.status(403).json({ message: 'Not authorized to update status' });
-    }
+    const request = await ServiceRequest.findById(req.params.id)
+      .populate('citizen', 'name email');
 
-    const request = await ServiceRequest.findById(req.params.id);
     if (!request) {
       return res.status(404).json({ message: 'Request not found' });
     }
 
-    // Updated status transition rules
-    const validTransitions = {
-      'pending': ['in-progress', 'rejected', 'resolved'],
-      'in-progress': ['resolved', 'rejected', 'pending'],
-      'resolved': ['in-progress', 'rejected', 'pending'],
-      'rejected': ['pending', 'in-progress', 'resolved']
+    const oldStatus = request.status;
+    request.status = status;
+
+    // Add to status history
+    request.statusHistory.push({
+      status,
+      changedBy: req.user._id,
+      comment: comment || `Status changed from ${oldStatus} to ${status}`,
+      timestamp: new Date()
+    });
+
+    await request.save();
+
+    // Send notification to the request owner
+    const notification = {
+      type: 'STATUS_UPDATE',
+      requestId: request._id,
+      userId: request.citizen._id,
+      title: 'Request Status Updated',
+      message: `Your request "${request.title}" status has been updated to ${status}`,
+      status: status,
+      comment: comment || `Status changed from ${oldStatus} to ${status}`,
+      updatedBy: {
+        _id: req.user._id,
+        name: req.user.name
+      },
+      timestamp: new Date()
     };
 
-    // Allow status update if it's a valid transition or if it's the same status
-    if (request.status !== req.body.status && !validTransitions[request.status].includes(req.body.status)) {
-      return res.status(400).json({ 
-        message: 'Invalid status transition',
-        currentStatus: request.status,
-        validTransitions: validTransitions[request.status]
-      });
-    }
+    emitNotification(notification);
+    console.log('Sent notification to user:', notification);
 
-    try {
-      await request.updateStatus(req.body.status, req.user._id, req.body.comment);
-      res.json(request);
-    } catch (updateError) {
-      console.error('Error updating status:', updateError);
-      res.status(500).json({ 
-        message: 'Failed to update status',
-        error: updateError.message 
-      });
-    }
+    res.json(request);
   } catch (error) {
     console.error('Status update error:', error);
-    res.status(500).json({ 
-      message: 'Server error',
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -322,31 +335,21 @@ router.get('/nearby', auth, async (req, res) => {
   }
 });
 
-// Update service request
+// Update service request (admin only)
 router.patch('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
     
-    // Check if user is admin
-    if (req.user.role !== 'admin' && req.user.email !== 'admin@example.com') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Only admins can update requests' });
     }
 
-    const request = await ServiceRequest.findById(id);
+    const request = await ServiceRequest.findById(id)
+      .populate('citizen', 'name email');
+
     if (!request) {
       return res.status(404).json({ message: 'Request not found' });
-    }
-
-    // Validate department if it's being updated
-    if (updates.assignedTo) {
-      const validDepartments = ['Water Works Association', 'Electric Association', 'Gas Association', 'Parks and Recreation', 'Municipality', 'Governorship', 'Ministry of Education', 'Ministry of Sport', 'Ministry of Health', 'Other'];
-      if (!validDepartments.includes(updates.assignedTo)) {
-        return res.status(400).json({ 
-          message: 'Invalid department',
-          validDepartments: validDepartments
-        });
-      }
     }
 
     // Update request fields
@@ -361,8 +364,48 @@ router.patch('/:id', auth, async (req, res) => {
       request.statusHistory.push({
         status: updates.status,
         changedBy: req.user._id,
-        comment: updates.statusComment || 'Status updated'
+        comment: updates.statusComment || 'Status updated',
+        timestamp: new Date()
       });
+
+      // Send status update notification
+      const statusNotification = {
+        type: 'STATUS_UPDATE',
+        requestId: request._id,
+        userId: request.citizen._id,
+        title: 'Request Status Updated',
+        message: `Your request "${request.title}" status has been updated to ${updates.status}`,
+        status: updates.status,
+        comment: updates.statusComment || 'Status updated',
+        updatedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        timestamp: new Date()
+      };
+
+      emitNotification(statusNotification);
+      console.log('Sent status notification to user:', statusNotification);
+    }
+
+    // If department is being assigned, send notification
+    if (updates.assignedTo) {
+      const deptNotification = {
+        type: 'DEPARTMENT_ASSIGNED',
+        requestId: request._id,
+        userId: request.citizen._id,
+        title: 'Request Assigned to Department',
+        message: `Your request "${request.title}" has been assigned to ${updates.assignedTo}`,
+        status: request.status,
+        updatedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        timestamp: new Date()
+      };
+
+      emitNotification(deptNotification);
+      console.log('Sent department notification to user:', deptNotification);
     }
 
     await request.save();

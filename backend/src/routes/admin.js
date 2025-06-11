@@ -65,7 +65,7 @@ router.get('/dashboard', auth, isStaff, async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error1' });
   }
 });
 
@@ -116,7 +116,7 @@ router.get('/requests', auth, isStaff, async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error2' });
   }
 });
 
@@ -148,7 +148,7 @@ router.post('/requests/:id/assign', auth, isAdmin, [
     res.json(request);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error3' });
   }
 });
 
@@ -209,7 +209,7 @@ router.get('/reports', auth, isAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error4' });
   }
 });
 
@@ -247,7 +247,7 @@ router.get('/staff-performance', auth, isAdmin, async (req, res) => {
     res.json(performance);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error5' });
   }
 });
 

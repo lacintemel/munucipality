@@ -5,7 +5,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const { auth } = require('../middleware/auth');
+const { auth, generateAuthToken } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
 
 // Validation middleware
 const registerValidation = [
@@ -23,27 +24,18 @@ const loginValidation = [
 // Get current user
 router.get('/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user.getPublicProfile());
+    const user = await User.findById(req.user._id).select('-password');
+    res.json(user);
   } catch (error) {
-    console.error(error);
+    console.error('Get user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Register new user
-router.post('/register', registerValidation, async (req, res) => {
-  console.log('Registering user:', req.body);
+router.post('/register', async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { email, password, name, phone, address } = req.body;
+    const { name, email, password, phone, kvkkConsent } = req.body;
 
     // Check if user already exists
     let user = await User.findOne({ email });
@@ -51,82 +43,80 @@ router.post('/register', registerValidation, async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    // Validate KVKK consent
+    if (!kvkkConsent) {
+      return res.status(400).json({ message: 'KVKK consent is required' });
+    }
 
     // Create new user
     user = new User({
+      name,
       email,
       password,
-      name,
       phone,
-      address,
-      verificationToken,
-      isVerified: true // Set to true by default for now
+      kvkkConsent,
+      role: 'citizen' // Default role
     });
 
-    await user.save();
-    console.log('User saved successfully:', user);
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
 
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    await user.save();
+
+    // Generate token
+    const token = generateAuthToken(user);
 
     res.status(201).json({
-      message: 'User registered successfully',
       token,
-      user: user.getPublicProfile()
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        kvkkConsent: user.kvkkConsent
+      }
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
 // Login user
-router.post('/login', loginValidation, async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { email, password } = req.body;
 
-    // Find user
+    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
+    // Validate password
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Check if email is verified
-    if (!user.isVerified) {
-      return res.status(400).json({ message: 'Please verify your email first' });
-    }
-
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Generate token
+    const token = generateAuthToken(user);
 
     res.json({
       token,
-      user: user.getPublicProfile()
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone
+      }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
@@ -145,7 +135,7 @@ router.get('/verify-email/:token', async (req, res) => {
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error9' });
   }
 });
 
@@ -182,7 +172,7 @@ router.post('/forgot-password', async (req, res) => {
     res.json({ message: 'Password reset email sent' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error10' });
   }
 });
 
@@ -207,7 +197,7 @@ router.post('/reset-password/:token', async (req, res) => {
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error11' });
   }
 });
 
@@ -244,7 +234,7 @@ router.post('/create-admin', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error12' });
   }
 });
 
@@ -272,7 +262,7 @@ router.put('/profile', auth, async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error13' });
   }
 });
 
